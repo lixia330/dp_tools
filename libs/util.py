@@ -1,4 +1,6 @@
 from loguru import logger
+import scorecardpy as sc
+import pandas as pd 
 
 class Loggings:
     def __init__(self, log_file):
@@ -16,22 +18,6 @@ class Loggings:
     def error(self, msg):
         return logger.error(msg)
 
-
-import scorecardpy as sc
-import pandas as pd 
-
-# load data
-data = sc.germancredit()
-
-# col grp by corr
-type_df = pd.DataFrame(data.dtypes).reset_index()
-type_df.columns = ['var', 'type']
-int_col = type_df[type_df["type"] == "int64"]["var"].tolist()
-corr_met = data[int_col].corr()
-corr_deep = pd.melt(corr_met.reset_index(names="cols"), ["cols"])
-corr_deep.columns = ["col1", "col2", "cor"]
-corr_deep = corr_deep[corr_deep['cor'] > 0.2]
-dic = corr_deep.groupby("col1")["col2"].agg(list).to_dict()
 
 # connected subgraph
 def linked_subgraph(dic):
@@ -54,11 +40,23 @@ def linked_subgraph(dic):
     return rst, col_grp
 
 
-col_lt = [item for sub in rst for item in sub]
-col_grp = [item for sub in col_grp for item in sub]
-dic_grp = dict(zip(col_lt, col_grp))
-dic_grp
+if __name__ == "__main__":
+    # load data
+    data = sc.germancredit()
 
+    # data2dic;  filter feature type in int
+    type_df = pd.DataFrame(data.dtypes).reset_index()
+    type_df.columns = ['var', 'type']
+    int_col = type_df[type_df["type"] == "int64"]["var"].tolist()
+    corr_met = data[int_col].corr()
+    corr_deep = pd.melt(corr_met.reset_index(names="cols"), ["cols"])
+    corr_deep.columns = ["col1", "col2", "cor"]
+    corr_deep = corr_deep[corr_deep['cor'] > 0.2]
+    dic = corr_deep.groupby("col1")["col2"].agg(list).to_dict()
 
-# col binning
-# col_bin
+    # return labels ; labels mapping
+    rst, col_grp = linked_subgraph(dic)
+    col_lt = [item for sub in rst for item in sub]
+    col_grp = [item for sub in col_grp for item in sub]
+    dic_grp = dict(zip(col_lt, col_grp))
+    dic_grp
